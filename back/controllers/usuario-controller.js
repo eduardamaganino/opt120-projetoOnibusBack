@@ -7,8 +7,8 @@ class UsuarioController {
         const { nome, email, senha, telefone, is_adm } = req.body;
         const hashedSenha = bcrypt.hashSync(senha, 10); // Hash da senha
         database.query(
-            'INSERT INTO optbusao.usuarios (nome, email, senha, telefone, is_adm) VALUES (?, ?, ?, ?, ?)', 
-            [nome, email, hashedSenha, telefone, is_adm], 
+            'INSERT INTO optbusao.usuarios (nome, email, senha, telefone, is_adm) VALUES (?, ?, ?, ?, ?)',
+            [nome, email, hashedSenha, telefone, is_adm],
             (err, results) => {
                 if (err) {
                     console.error(err);
@@ -20,7 +20,7 @@ class UsuarioController {
             }
         );
     }
-    
+
     login(req, res) {
         const { email, senha } = req.body;
 
@@ -28,7 +28,7 @@ class UsuarioController {
             const usuario = results[0];
             console.log(usuario)
             const senhaCorreta = bcrypt.compareSync(senha, usuario.senha); // Verifica se a senha está correta
-            
+
             if (error) {
                 console.error(error);
                 res.status(500).json({ error: 'Erro interno do servidor' });
@@ -40,7 +40,7 @@ class UsuarioController {
                 return;
             }
 
-          
+
             if (!senhaCorreta) {
                 res.status(401).json({ error: 'Senha inválidas' });
                 return;
@@ -90,6 +90,8 @@ class UsuarioController {
 
     deleteUser(req, res) {
         const { id } = req.params;
+
+        // Check if the user exists
         database.query('SELECT * FROM optbusao.usuarios WHERE id = ?', [id], (error, results) => {
             if (error) {
                 console.error(error);
@@ -102,8 +104,16 @@ class UsuarioController {
                 return;
             }
 
-            const usuario = results[0];
-            res.json(usuario);
+            // Delete the user
+            database.query('DELETE FROM optbusao.usuarios WHERE id = ?', [id], (deleteError) => {
+                if (deleteError) {
+                    console.error(deleteError);
+                    res.status(500).json({ error: 'Erro ao deletar o usuário' });
+                    return;
+                }
+
+                res.json({ message: 'Usuário deletado com sucesso' });
+            });
         });
     }
 

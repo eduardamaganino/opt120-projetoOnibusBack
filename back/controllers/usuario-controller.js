@@ -12,7 +12,7 @@ class UsuarioController {
             (err, results) => {
                 if (err) {
                     console.error(err);
-                    res.status(500).json({ error: 'Erro interno do servidor' });
+                    res.status(401).json({ error: 'Erro interno do servidor' });
                     return;
                 }
                 console.log(results);
@@ -26,7 +26,7 @@ class UsuarioController {
 
         database.query('SELECT * FROM optbusao.usuarios WHERE email = ?', [email], (error, results) => {
             const usuario = results[0];
-            console.log(usuario)
+            console.log(usuario);
             const senhaCorreta = bcrypt.compareSync(senha, usuario.senha); // Verifica se a senha está correta
 
             if (error) {
@@ -39,7 +39,6 @@ class UsuarioController {
                 res.status(401).json({ error: 'Credenciais inválidas' });
                 return;
             }
-
 
             if (!senhaCorreta) {
                 res.status(401).json({ error: 'Senha inválidas' });
@@ -118,13 +117,31 @@ class UsuarioController {
     }
 
     updateUser(req, res) {
-        const { nome, email, telefone } = req.body;
+        const { nome, email, telefone, senha } = req.body; // Incluindo a senha
         const { id } = req.params;
-        database.query('UPDATE optbusao.usuarios SET nome = ?, email = ?, telefone = ? WHERE id = ?', [nome, email, telefone, id], (err, results) => {
-            if (err) throw err;
+
+        // Cria um array de valores para atualização
+        const values = [nome, email, telefone, id];
+        let query = 'UPDATE optbusao.usuarios SET nome = ?, email = ?, telefone = ?';
+
+        // Verifique se a senha foi fornecida
+        if (senha) {
+            const hashedSenha = bcrypt.hashSync(senha, 10); // Hash da nova senha
+            query += ', senha = ?'; // Adiciona a parte da senha à consulta
+            values.splice(3, 0, hashedSenha); // Insere o hash da senha no array de valores
+        }
+
+        query += ' WHERE id = ?';
+
+        database.query(query, values, (err, results) => {
+            if (err) {
+                console.error(err);
+                res.status(500).json({ error: 'Erro interno do servidor' });
+                return;
+            }
             res.json(results);
         });
     }
 }
 
-module.exports = new UsuarioController;
+module.exports = new UsuarioController();

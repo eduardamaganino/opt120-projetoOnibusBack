@@ -12,13 +12,13 @@ router.get('/showUserId/:id', UsuarioController.showUserById)
 router.delete('/deleteUser/:id', UsuarioController.deleteUser)
 router.put('/updateUser/:id', UsuarioController.updateUser)
 
-router.post('/create', NotificacaoController.create)
-router.get('/getById/:id', NotificacaoController.getById)
-router.delete('/delete/:id', NotificacaoController.delete)
+router.post('/createNotificacao', NotificacaoController.create)
+router.get('/getByIdNotificacao/:id', NotificacaoController.getById)
+router.delete('/deleteNotificacao/:id', NotificacaoController.delete)
 
-router.post('/create', CartaoController.create)
-router.get('/getById/:id', CartaoController.getById)
-router.get('/getByIdUser/:id', CartaoController.getByIdUser)
-router.delete('/delete/:id', CartaoController.delete)
+router.post('/createCartao', CartaoController.create)
+router.get('/getByIdCartao/:id', CartaoController.getById)
+router.get('/getByIdUserCartao/:id', CartaoController.getByIdUser)
+router.delete('/deleteCartao/:id', CartaoController.delete)
 
 module.exports = router

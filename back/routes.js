@@ -14,10 +14,9 @@ router.put('/updateUser/:id', UsuarioController.updateUser)
 
 router.post('/createNotificacao', NotificacaoController.create)
 router.get('/getByIdNotificacao/:id', NotificacaoController.getById)
-router.get('/getNotificationsByUserId/:idUser', NotificacaoController.getByUserId);
+router.get('/getNotificacaoByUserId/:idUser', NotificacaoController.getByUserId);
 router.delete('/deleteNotificacao/:id', NotificacaoController.delete)
-// Rota para atualizar o status da notificação
-router.post('/updateNotificationStatus/:id', NotificacaoController.updateStatus);
+router.post('/updateNotificacaoStatus/:id', NotificacaoController.updateStatus);
 
 router.post('/createCartao', CartaoController.create)
 router.get('/getByIdCartao/:id', CartaoController.getById)

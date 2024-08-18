@@ -21,6 +21,28 @@ class NotificacaoController {
         );
     }
 
+    updateStatus(req, res) {
+        const { id } = req.params;
+        const { isRead } = req.body;
+    
+        const query = 'UPDATE optbusao.notificacoes SET isRead = ? WHERE id = ?';
+    
+        database.query(query, [isRead, id], (error, results) => {
+            if (error) {
+                console.error(error);
+                res.status(500).json({ error: 'Erro ao atualizar o status da notificação' });
+                return;
+            }
+    
+            if (results.affectedRows === 0) {
+                res.status(404).json({ error: 'Notificação não encontrada' });
+                return;
+            }
+    
+            res.json({ message: 'Status da notificação atualizado com sucesso' });
+        });
+    }
+
     getById(req, res) {
         const { id } = req.params;
         const query = 'SELECT * FROM optbusao.notificacoes WHERE id = ?';
@@ -39,6 +61,26 @@ class NotificacaoController {
 
             const usuario = results[0];
             res.json(usuario);
+        });
+    }
+
+    getByUserId(req, res) {
+        const { idUser } = req.params;
+        const query = 'SELECT * FROM optbusao.notificacoes WHERE idUser = ?';
+    
+        database.query(query, [idUser], (error, results) => {
+            if (error) {
+                console.error(error);
+                res.status(500).json({ error: 'Erro interno do servidor' });
+                return;
+            }
+    
+            if (results.length === 0) {
+                res.status(404).json({ error: 'Nenhuma notificação encontrada' });
+                return;
+            }
+    
+            res.json(results);
         });
     }
 

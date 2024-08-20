@@ -15,6 +15,8 @@ router.put('/updateUser/:id', UsuarioController.updateUser)
 router.post('/createNotificacao', NotificacaoController.create)
 router.get('/getByIdNotificacao/:id', NotificacaoController.getById)
 router.delete('/deleteNotificacao/:id', NotificacaoController.delete)
+router.get('/getAllNotifi', NotificacaoController.getAll)
+
 
 router.post('/createCartao', CartaoController.create)
 router.get('/getByIdCartao/:id', CartaoController.getById)

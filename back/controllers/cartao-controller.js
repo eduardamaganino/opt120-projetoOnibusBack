@@ -22,23 +22,23 @@ class CartaoController {
     }
 
     getByIdUser(req, res) {
-        const { idUser } = req.params;
+        const { id } = req.params; // Corrigido para 'id' em vez de 'idUser'
         const query = 'SELECT * FROM optbusao.cartoes WHERE idUser = ?';
-
-        database.query(query, [idUser], (error, results) => {
+    
+        database.query(query, [id], (error, results) => {
             if (error) {
                 console.error(error);
                 res.status(500).json({ error: 'Erro interno do servidor' });
                 return;
             }
-
+    
             if (results.length === 0) {
-                res.status(404).json({ error: 'cartão não encontrado' });
+                res.status(404).json({ error: 'Cartão não encontrado' });
                 return;
             }
-
-            const usuario = results[0];
-            res.json(usuario);
+    
+            const cartao = results[0];
+            res.json(cartao);
         });
     }
 

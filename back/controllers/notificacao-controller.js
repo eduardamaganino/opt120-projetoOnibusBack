@@ -21,6 +21,21 @@ class NotificacaoController {
         );
     }
 
+    getAll(req,res){
+        const query = 'SELECT * FROM optbusao.notificacoes';
+
+        database.query(query, (error, results) => {
+            if (error) {
+                console.error(error);
+                res.status(500).json({ error: 'Erro interno do servidor' });
+                return;
+            }
+
+            console.log(results);
+            res.json(results);
+        });
+    }
+
     getById(req, res) {
         const { id } = req.params;
         const query = 'SELECT * FROM optbusao.notificacoes WHERE id = ?';

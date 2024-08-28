@@ -16,8 +16,9 @@ router.post('/createNotificacao', NotificacaoController.create)
 router.get('/getByIdNotificacao/:id', NotificacaoController.getById)
 router.get('/getNotificacaoByUserId/:idUser', NotificacaoController.getByUserId);
 router.delete('/deleteNotificacao/:id', NotificacaoController.delete)
-router.post('/updateNotificacaoStatus/:id', NotificacaoController.updateStatus);
 
+router.get('/getAllNotifi', NotificacaoController.getAll)
+router.post('/createTable', CartaoController.createTable);
 router.post('/createCartao', CartaoController.create)
 router.get('/getByIdCartao/:id', CartaoController.getById)
 router.get('/getByIdUserCartao/:id', CartaoController.getByIdUser)

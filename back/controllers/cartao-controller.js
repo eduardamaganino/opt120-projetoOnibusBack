@@ -1,4 +1,22 @@
 const database = require('../database/connection');
+const multer = require('multer');
+const path = require('path');
+
+
+// Configuração do Multer para upload de PDFs
+const upload = multer({
+    dest: 'uploads/', // Pasta de destino para os arquivos
+    fileFilter: (req, file, cb) => {
+        const filetypes = /pdf/;
+        const mimetype = filetypes.test(file.mimetype);
+        const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
+
+        if (mimetype && extname) {
+            return cb(null, true);
+        }
+        cb('Apenas arquivos PDF são permitidos!');
+    }
+});
 
 class CartaoController {
     create(req, res) {
@@ -131,6 +149,8 @@ class CartaoController {
         });
     }
 
+    
+
     debitar(req, res) {
         const { idUser } = req.params; 
         const valor = 2.00;
@@ -164,6 +184,64 @@ class CartaoController {
       
     }
 
+    // Rota para solicitar um cartão com PDF de dados
+    solicitarCartao(req, res) {
+        const { idUser } = req.params;
+        
+        // Verifica se o arquivo foi enviado
+        if (!req.file) {
+            return res.status(400).json({ error: 'Nenhum arquivo foi enviado.' });
+        }
+
+        const pdfPath = req.file.path;
+
+        // Insere a solicitação no banco de dados
+        const query = `
+            INSERT INTO solicitacoes_cartao (idUser, pdfPath, status) 
+            VALUES (?, ?, 'pendente')
+        `;
+        database.query(query, [idUser, pdfPath], (err, results) => {
+            if (err) {
+                console.error(err);
+                return res.status(500).json({ error: 'Erro ao salvar a solicitação.' });
+            }
+            res.status(201).json({ message: 'Solicitação de cartão enviada com sucesso!', requestId: results.insertId });
+        });
+    }
+
+    // Rota para o administrador ver todas as solicitações pendentes
+    getSolicitacoesPendentes(req, res) {
+        const query = 'SELECT * FROM solicitacoes_cartao WHERE status = "pendente"';
+        database.query(query, (err, results) => {
+            if (err) {
+                console.error(err);
+                return res.status(500).json({ error: 'Erro ao buscar solicitações.' });
+            }
+            res.json(results);
+        });
+    }
+
+    // Rota para aprovar ou rejeitar uma solicitação
+    processarSolicitacao(req, res) {
+        const { id } = req.params;
+        const { status } = req.body; // 'aprovado' ou 'rejeitado'
+
+        if (!['aprovado', 'rejeitado'].includes(status)) {
+            return res.status(400).json({ error: 'Status inválido.' });
+        }
+
+        const query = 'UPDATE solicitacoes_cartao SET status = ? WHERE id = ?';
+        database.query(query, [status, id], (err, results) => {
+            if (err) {
+                console.error(err);
+                return res.status(500).json({ error: 'Erro ao processar a solicitação.' });
+            }
+            res.json({ message: `Solicitação ${status} com sucesso.` });
+        });
+    }
+    
+
 }
 
 module.exports = new CartaoController;
+module.exports.upload = upload;

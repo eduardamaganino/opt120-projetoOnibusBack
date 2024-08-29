@@ -4,6 +4,9 @@ const router = express.Router()
 const UsuarioController = require('./controllers/usuario-controller')
 const NotificacaoController = require('./controllers/notificacao-controller')
 const CartaoController = require('./controllers/cartao-controller')
+const multer = require('multer');
+const upload = multer({ dest: 'uploads/' }); // Diretório de destino para os arquivos
+
 
 router.post('/login', UsuarioController.login)
 router.post('/newUser',UsuarioController.newUser)
@@ -25,10 +28,12 @@ router.get('/getByIdUserCartao/:id', CartaoController.getByIdUser)
 router.delete('/deleteCartao/:id', CartaoController.delete)
 router.put('/debitar/:idUser', CartaoController.debitar)
 
-// Rota para upload de PDF
-router.post('/uploadPdf', (req, res) => {
-    res.status(200).send('Endpoint de upload de PDF');
-  });
-  
+// Rota para upload de PDF e solicitação de cartão
+router.post('/solicitarCartao/:idUser', CartaoController.upload.single('file'), CartaoController.solicitarCartao);
+
+// Rotas para o administrador
+router.get('/solicitacoesPendentes', CartaoController.getSolicitacoesPendentes);
+router.put('/processarSolicitacao/:id', CartaoController.processarSolicitacao);
+
 
 module.exports = router

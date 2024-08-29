@@ -16,12 +16,13 @@ router.post('/createNotificacao', NotificacaoController.create)
 router.get('/getByIdNotificacao/:id', NotificacaoController.getById)
 router.get('/getNotificacaoByUserId/:idUser', NotificacaoController.getByUserId);
 router.delete('/deleteNotificacao/:id', NotificacaoController.delete)
-
 router.get('/getAllNotifi', NotificacaoController.getAll)
+
 router.post('/createTable', CartaoController.createTable);
 router.post('/createCartao', CartaoController.create)
 router.get('/getByIdCartao/:id', CartaoController.getById)
 router.get('/getByIdUserCartao/:id', CartaoController.getByIdUser)
 router.delete('/deleteCartao/:id', CartaoController.delete)
+router.put('/debitar/:idUser', CartaoController.debitar)
 
 module.exports = router

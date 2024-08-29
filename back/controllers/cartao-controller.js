@@ -36,9 +36,8 @@ class CartaoController {
             }
         );
     }
-    
 
-       getByIdUser(req, res) {
+    getByIdUser(req, res) {
         const { id } = req.params; 
         const query = 'SELECT * FROM optbusao.cartoes WHERE idUser = ?';
         
@@ -130,6 +129,39 @@ class CartaoController {
     
             res.json({ message: 'Tabela cartoes criada com sucesso' });
         });
+    }
+
+    debitar(req, res) {
+        const { idUser } = req.params; 
+        const valor = 2.00;
+
+        
+        // Verifica se já existe um cartão com o idUser fornecido
+        database.query(
+            'SELECT * FROM optbusao.cartoes WHERE idUser = ?',
+            [idUser],
+            (err, results) => {
+                
+                const saldoAtual = results[0].valor;
+                const novoSaldo = saldoAtual - valor;
+                console.log(novoSaldo);
+                // Caso não exista, insere o novo cartão
+                database.query(
+                    'UPDATE optbusao.cartoes SET valor = ? WHERE idUser = ?',
+                    [novoSaldo, idUser],
+                    (err, results) => {
+                        if (err) {
+                            console.error(err);
+                            res.status(500).json({ error: 'Erro interno do servidor' });
+                            return;
+                        }
+                        console.log(results);
+                        res.status(201).json({ message: 'Cartão ATUALZIADO com sucesso!', cardId: idUser});
+                    }
+                );
+            }
+        );
+      
     }
 
 }

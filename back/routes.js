@@ -25,4 +25,10 @@ router.get('/getByIdUserCartao/:id', CartaoController.getByIdUser)
 router.delete('/deleteCartao/:id', CartaoController.delete)
 router.put('/debitar/:idUser', CartaoController.debitar)
 
+// Rota para upload de PDF
+router.post('/uploadPdf', (req, res) => {
+    res.status(200).send('Endpoint de upload de PDF');
+  });
+  
+
 module.exports = router

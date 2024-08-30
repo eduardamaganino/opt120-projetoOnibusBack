@@ -5,7 +5,7 @@ const path = require('path');
 
 // Configuração do Multer para upload de PDFs
 const upload = multer({
-    dest: 'uploads/', // Pasta de destino para os arquivos
+    dest: 'uploads/', // Pasta de destino para os arquivos  
     fileFilter: (req, file, cb) => {
         const filetypes = /pdf/;
         const mimetype = filetypes.test(file.mimetype);
@@ -15,6 +15,7 @@ const upload = multer({
             return cb(null, true);
         }
         cb('Apenas arquivos PDF são permitidos!');
+        exports.upload = upload;
     }
 });
 
@@ -187,20 +188,25 @@ class CartaoController {
     // Rota para solicitar um cartão com PDF de dados
     solicitarCartao(req, res) {
         const { idUser } = req.params;
-        
+        const { tipo } = req.body; // Obtenha o tipo do cartão do corpo da requisição
+    
         // Verifica se o arquivo foi enviado
         if (!req.file) {
             return res.status(400).json({ error: 'Nenhum arquivo foi enviado.' });
         }
-
+    
+        if (!tipo) {
+            return res.status(400).json({ error: 'O tipo de cartão é obrigatório.' });
+        }
+    
         const pdfPath = req.file.path;
-
+    
         // Insere a solicitação no banco de dados
         const query = `
-            INSERT INTO solicitacoes_cartao (idUser, pdfPath, status) 
-            VALUES (?, ?, 'pendente')
+            INSERT INTO solicitacoes_cartao (idUser, pdfPath, tipo, status) 
+            VALUES (?, ?, ?, 'pendente')
         `;
-        database.query(query, [idUser, pdfPath], (err, results) => {
+        database.query(query, [idUser, pdfPath, tipo], (err, results) => {
             if (err) {
                 console.error(err);
                 return res.status(500).json({ error: 'Erro ao salvar a solicitação.' });
@@ -208,7 +214,7 @@ class CartaoController {
             res.status(201).json({ message: 'Solicitação de cartão enviada com sucesso!', requestId: results.insertId });
         });
     }
-
+    
     // Rota para o administrador ver todas as solicitações pendentes
     getSolicitacoesPendentes(req, res) {
         const query = 'SELECT * FROM solicitacoes_cartao WHERE status = "pendente"';

@@ -29,7 +29,8 @@ router.delete('/deleteCartao/:id', CartaoController.delete)
 router.put('/debitar/:idUser', CartaoController.debitar)
 
 // Rota para upload de PDF e solicitação de cartão
-router.post('/solicitarCartao/:idUser', CartaoController.upload.single('file'), CartaoController.solicitarCartao);
+router.post('/solicitarCartao/:idUser', upload.single('file'), CartaoController.solicitarCartao);
+
 
 // Rotas para o administrador
 router.get('/solicitacoesPendentes', CartaoController.getSolicitacoesPendentes);

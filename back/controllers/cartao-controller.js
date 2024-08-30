@@ -231,21 +231,56 @@ class CartaoController {
     processarSolicitacao(req, res) {
         const { id } = req.params;
         const { status } = req.body; // 'aprovado' ou 'rejeitado'
-
+    
         if (!['aprovado', 'rejeitado'].includes(status)) {
             return res.status(400).json({ error: 'Status inválido.' });
         }
-
-        const query = 'UPDATE solicitacoes_cartao SET status = ? WHERE id = ?';
-        database.query(query, [status, id], (err, results) => {
+    
+        const queryUpdateStatus = 'UPDATE solicitacoes_cartao SET status = ? WHERE id = ?';
+        
+        // Primeiro, atualizamos o status da solicitação
+        database.query(queryUpdateStatus, [status, id], (err, results) => {
             if (err) {
                 console.error(err);
                 return res.status(500).json({ error: 'Erro ao processar a solicitação.' });
             }
-            res.json({ message: `Solicitação ${status} com sucesso.` });
+    
+            // Se a solicitação for aprovada, criamos o cartão
+            if (status === 'aprovado') {
+                const queryGetSolicitacao = 'SELECT idUser, tipo FROM solicitacoes_cartao WHERE id = ?';
+                
+                database.query(queryGetSolicitacao, [id], (err, results) => {
+                    if (err || results.length === 0) {
+                        console.error(err);
+                        return res.status(500).json({ error: 'Erro ao buscar detalhes da solicitação.' });
+                    }
+    
+                    const { idUser, tipo } = results[0];
+                    const dataCriacao = new Date(); // data atual
+                    const dataVencimento = new Date();
+                    dataVencimento.setFullYear(dataVencimento.getFullYear() + 1); // 1 ano de validade
+                    const valorInicial = 0.0;
+    
+                    const queryCreateCartao = 
+                        'INSERT INTO optbusao.cartoes (idUser, dataCriacao, dataVencimento, valor, tipo) VALUES (?, ?, ?, ?, ?)';
+    
+                    database.query(queryCreateCartao, [idUser, dataCriacao, dataVencimento, valorInicial, tipo], (err, results) => {
+                        if (err) {
+                            console.error(err);
+                            return res.status(500).json({ error: 'Erro ao criar o cartão.' });
+                        }
+                        res.json({ message: `Solicitação aprovada e cartão criado com sucesso para o usuário ${idUser}.` });
+                    });
+                });
+            } else {
+                res.json({ message: `Solicitação ${status} com sucesso.` });
+            }
         });
     }
     
+    adicionarSaldo(req, res) {
+
+    }
 
 }
 

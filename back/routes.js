@@ -36,5 +36,8 @@ router.post('/solicitarCartao/:idUser', upload.single('file'), CartaoController.
 router.get('/solicitacoesPendentes', CartaoController.getSolicitacoesPendentes);
 router.put('/processarSolicitacao/:id', CartaoController.processarSolicitacao);
 
+// Rota para adicionar saldo
+router.post('/adicionarSaldo/:idUser', CartaoController.adicionarSaldo);
+
 
 module.exports = router

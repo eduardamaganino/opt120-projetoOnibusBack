@@ -279,8 +279,43 @@ class CartaoController {
     }
     
     adicionarSaldo(req, res) {
-
+        const { idUser } = req.params;
+        const { valorAdicionado } = req.body; // Valor a ser adicionado ao saldo
+        // Converta o valorAdicionado para float
+        const valorAdicionadoFloat = parseFloat(valorAdicionado);
+        if (isNaN(valorAdicionadoFloat)) {
+            return res.status(400).json({ error: 'Valor inválido para adição de saldo.' });
+        }
+        
+        // Busca o cartão do usuário
+        database.query(
+            'SELECT * FROM optbusao.cartoes WHERE idUser = ?',
+            [idUser],
+            (err, results) => {
+                if (err || results.length === 0) {
+                    console.error(err);
+                    return res.status(500).json({ error: 'Erro ao buscar cartão ou cartão não encontrado.' });
+                }
+    
+                const saldoAtual = results[0].valor;
+                const novoSaldo = saldoAtual + valorAdicionadoFloat;
+                // Atualiza o saldo do cartão
+                database.query(
+                    'UPDATE optbusao.cartoes SET valor = ? WHERE idUser = ?',
+                    [novoSaldo, idUser],
+                    (err, updateResults) => {
+                        if (err) {
+                            console.error(err);
+                            return res.status(500).json({ error: 'Erro ao adicionar saldo.' });
+                        }
+                        res.status(200).json({ message: 'Saldo adicionado com sucesso.', novoSaldo: novoSaldo });
+                    }
+                );
+            }
+        );
     }
+    
+    
 
 }
 

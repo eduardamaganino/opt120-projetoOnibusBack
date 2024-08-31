@@ -5,7 +5,7 @@ const path = require('path');
 
 // Configuração do Multer para upload de PDFs
 const upload = multer({
-    dest: 'uploads/', // Pasta de destino para os arquivos
+    dest: 'uploads/', // Pasta de destino para os arquivos  
     fileFilter: (req, file, cb) => {
         const filetypes = /pdf/;
         const mimetype = filetypes.test(file.mimetype);
@@ -15,6 +15,7 @@ const upload = multer({
             return cb(null, true);
         }
         cb('Apenas arquivos PDF são permitidos!');
+        exports.upload = upload;
     }
 });
 
@@ -187,20 +188,25 @@ class CartaoController {
     // Rota para solicitar um cartão com PDF de dados
     solicitarCartao(req, res) {
         const { idUser } = req.params;
-        
+        const { tipo } = req.body; // Obtenha o tipo do cartão do corpo da requisição
+    
         // Verifica se o arquivo foi enviado
         if (!req.file) {
             return res.status(400).json({ error: 'Nenhum arquivo foi enviado.' });
         }
-
+    
+        if (!tipo) {
+            return res.status(400).json({ error: 'O tipo de cartão é obrigatório.' });
+        }
+    
         const pdfPath = req.file.path;
-
+    
         // Insere a solicitação no banco de dados
         const query = `
-            INSERT INTO solicitacoes_cartao (idUser, pdfPath, status) 
-            VALUES (?, ?, 'pendente')
+            INSERT INTO solicitacoes_cartao (idUser, pdfPath, tipo, status) 
+            VALUES (?, ?, ?, 'pendente')
         `;
-        database.query(query, [idUser, pdfPath], (err, results) => {
+        database.query(query, [idUser, pdfPath, tipo], (err, results) => {
             if (err) {
                 console.error(err);
                 return res.status(500).json({ error: 'Erro ao salvar a solicitação.' });
@@ -208,7 +214,7 @@ class CartaoController {
             res.status(201).json({ message: 'Solicitação de cartão enviada com sucesso!', requestId: results.insertId });
         });
     }
-
+    
     // Rota para o administrador ver todas as solicitações pendentes
     getSolicitacoesPendentes(req, res) {
         const query = 'SELECT * FROM solicitacoes_cartao WHERE status = "pendente"';
@@ -225,20 +231,90 @@ class CartaoController {
     processarSolicitacao(req, res) {
         const { id } = req.params;
         const { status } = req.body; // 'aprovado' ou 'rejeitado'
-
+    
         if (!['aprovado', 'rejeitado'].includes(status)) {
             return res.status(400).json({ error: 'Status inválido.' });
         }
-
-        const query = 'UPDATE solicitacoes_cartao SET status = ? WHERE id = ?';
-        database.query(query, [status, id], (err, results) => {
+    
+        const queryUpdateStatus = 'UPDATE solicitacoes_cartao SET status = ? WHERE id = ?';
+        
+        // Primeiro, atualizamos o status da solicitação
+        database.query(queryUpdateStatus, [status, id], (err, results) => {
             if (err) {
                 console.error(err);
                 return res.status(500).json({ error: 'Erro ao processar a solicitação.' });
             }
-            res.json({ message: `Solicitação ${status} com sucesso.` });
+    
+            // Se a solicitação for aprovada, criamos o cartão
+            if (status === 'aprovado') {
+                const queryGetSolicitacao = 'SELECT idUser, tipo FROM solicitacoes_cartao WHERE id = ?';
+                
+                database.query(queryGetSolicitacao, [id], (err, results) => {
+                    if (err || results.length === 0) {
+                        console.error(err);
+                        return res.status(500).json({ error: 'Erro ao buscar detalhes da solicitação.' });
+                    }
+    
+                    const { idUser, tipo } = results[0];
+                    const dataCriacao = new Date(); // data atual
+                    const dataVencimento = new Date();
+                    dataVencimento.setFullYear(dataVencimento.getFullYear() + 1); // 1 ano de validade
+                    const valorInicial = 0.0;
+    
+                    const queryCreateCartao = 
+                        'INSERT INTO optbusao.cartoes (idUser, dataCriacao, dataVencimento, valor, tipo) VALUES (?, ?, ?, ?, ?)';
+    
+                    database.query(queryCreateCartao, [idUser, dataCriacao, dataVencimento, valorInicial, tipo], (err, results) => {
+                        if (err) {
+                            console.error(err);
+                            return res.status(500).json({ error: 'Erro ao criar o cartão.' });
+                        }
+                        res.json({ message: `Solicitação aprovada e cartão criado com sucesso para o usuário ${idUser}.` });
+                    });
+                });
+            } else {
+                res.json({ message: `Solicitação ${status} com sucesso.` });
+            }
         });
     }
+    
+    adicionarSaldo(req, res) {
+        const { idUser } = req.params;
+        const { valorAdicionado } = req.body; // Valor a ser adicionado ao saldo
+        // Converta o valorAdicionado para float
+        const valorAdicionadoFloat = parseFloat(valorAdicionado);
+        if (isNaN(valorAdicionadoFloat)) {
+            return res.status(400).json({ error: 'Valor inválido para adição de saldo.' });
+        }
+        
+        // Busca o cartão do usuário
+        database.query(
+            'SELECT * FROM optbusao.cartoes WHERE idUser = ?',
+            [idUser],
+            (err, results) => {
+                if (err || results.length === 0) {
+                    console.error(err);
+                    return res.status(500).json({ error: 'Erro ao buscar cartão ou cartão não encontrado.' });
+                }
+    
+                const saldoAtual = results[0].valor;
+                const novoSaldo = saldoAtual + valorAdicionadoFloat;
+                // Atualiza o saldo do cartão
+                database.query(
+                    'UPDATE optbusao.cartoes SET valor = ? WHERE idUser = ?',
+                    [novoSaldo, idUser],
+                    (err, updateResults) => {
+                        if (err) {
+                            console.error(err);
+                            return res.status(500).json({ error: 'Erro ao adicionar saldo.' });
+                        }
+                        res.status(200).json({ message: 'Saldo adicionado com sucesso.', novoSaldo: novoSaldo });
+                    }
+                );
+            }
+        );
+    }
+    
     
 
 }

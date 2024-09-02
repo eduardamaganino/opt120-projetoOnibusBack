@@ -2,7 +2,6 @@ const database = require('../database/connection');
 const multer = require('multer');
 const path = require('path');
 
-
 // Configuração do Multer para upload de PDFs
 const upload = multer({
     dest: 'uploads/', // Pasta de destino para os arquivos  
@@ -22,7 +21,6 @@ const upload = multer({
 class CartaoController {
     create(req, res) {
         const { idUser, dataCriacao, dataVencimento, valor, tipo } = req.body;
-    
         // Verifica se já existe um cartão com o idUser fornecido
         database.query(
             'SELECT * FROM optbusao.cartoes WHERE idUser = ?',
@@ -130,12 +128,13 @@ class CartaoController {
     createTable(req, res) {
         const createTableQuery = `
             CREATE TABLE IF NOT EXISTS cartoes (
+                id INT AUTO_INCREMENT PRIMARY KEY,
                 idUser INT NOT NULL,
                 dataCriacao DATETIME NOT NULL,
                 dataVencimento DATETIME NOT NULL,
-                valor DECIMAL(10, 2) NOT NULL,
+                valor DOUBLE NOT NULL,
                 tipo VARCHAR(50) NOT NULL,
-                PRIMARY KEY (idUser)
+                FOREIGN KEY (idUser) REFERENCES usuarios(id)
             );
         `;
     
@@ -150,13 +149,10 @@ class CartaoController {
         });
     }
 
-    
-
     debitar(req, res) {
         const { idUser } = req.params; 
         const valor = 2.00;
 
-        
         // Verifica se já existe um cartão com o idUser fornecido
         database.query(
             'SELECT * FROM optbusao.cartoes WHERE idUser = ?',
@@ -188,8 +184,7 @@ class CartaoController {
     // Rota para solicitar um cartão com PDF de dados
     solicitarCartao(req, res) {
         const { idUser } = req.params;
-        const { tipo } = req.body; // Obtenha o tipo do cartão do corpo da requisição
-    
+        const { tipo, valor } = req.body; // Obtenha o tipo e valor do corpo da requisição
         // Verifica se o arquivo foi enviado
         if (!req.file) {
             return res.status(400).json({ error: 'Nenhum arquivo foi enviado.' });
@@ -199,14 +194,17 @@ class CartaoController {
             return res.status(400).json({ error: 'O tipo de cartão é obrigatório.' });
         }
     
+        if (valor === undefined || isNaN(parseFloat(valor))) {
+            return res.status(400).json({ error: 'O valor é obrigatório e deve ser um número.' });
+        }
+        
         const pdfPath = req.file.path;
-    
         // Insere a solicitação no banco de dados
         const query = `
-            INSERT INTO solicitacoes_cartao (idUser, pdfPath, tipo, status) 
-            VALUES (?, ?, ?, 'pendente')
+            INSERT INTO solicitacoes_cartao (idUser, pdfPath, tipo, valor, status) 
+            VALUES (?, ?, ?, ?, 'pendente')
         `;
-        database.query(query, [idUser, pdfPath, tipo], (err, results) => {
+        database.query(query, [idUser, pdfPath, tipo, valor], (err, results) => {
             if (err) {
                 console.error(err);
                 return res.status(500).json({ error: 'Erro ao salvar a solicitação.' });
@@ -214,6 +212,7 @@ class CartaoController {
             res.status(201).json({ message: 'Solicitação de cartão enviada com sucesso!', requestId: results.insertId });
         });
     }
+    
     
     // Rota para o administrador ver todas as solicitações pendentes
     getSolicitacoesPendentes(req, res) {
@@ -230,12 +229,11 @@ class CartaoController {
     // Rota para aprovar ou rejeitar uma solicitação
     processarSolicitacao(req, res) {
         const { id } = req.params;
-        const { status } = req.body; // 'aprovado' ou 'rejeitado'
-    
+        const { status, valor } = req.body; // 'aprovado' ou 'rejeitado', e valor a ser adicionado
         if (!['aprovado', 'rejeitado'].includes(status)) {
             return res.status(400).json({ error: 'Status inválido.' });
         }
-    
+        
         const queryUpdateStatus = 'UPDATE solicitacoes_cartao SET status = ? WHERE id = ?';
         
         // Primeiro, atualizamos o status da solicitação
@@ -244,7 +242,7 @@ class CartaoController {
                 console.error(err);
                 return res.status(500).json({ error: 'Erro ao processar a solicitação.' });
             }
-    
+        
             // Se a solicitação for aprovada, criamos o cartão
             if (status === 'aprovado') {
                 const queryGetSolicitacao = 'SELECT idUser, tipo FROM solicitacoes_cartao WHERE id = ?';
@@ -254,22 +252,35 @@ class CartaoController {
                         console.error(err);
                         return res.status(500).json({ error: 'Erro ao buscar detalhes da solicitação.' });
                     }
-    
+        
                     const { idUser, tipo } = results[0];
                     const dataCriacao = new Date(); // data atual
                     const dataVencimento = new Date();
                     dataVencimento.setFullYear(dataVencimento.getFullYear() + 1); // 1 ano de validade
-                    const valorInicial = 0.0;
-    
+                    const valorInicial = 0.0; // Usar valor da solicitação, se disponível
+
+                    // Cria o cartão
                     const queryCreateCartao = 
                         'INSERT INTO optbusao.cartoes (idUser, dataCriacao, dataVencimento, valor, tipo) VALUES (?, ?, ?, ?, ?)';
-    
+        
                     database.query(queryCreateCartao, [idUser, dataCriacao, dataVencimento, valorInicial, tipo], (err, results) => {
                         if (err) {
                             console.error(err);
                             return res.status(500).json({ error: 'Erro ao criar o cartão.' });
                         }
-                        res.json({ message: `Solicitação aprovada e cartão criado com sucesso para o usuário ${idUser}.` });
+                        console.log(`Valor  antes de setar no cartao: ${valor}`);
+
+                        // Adiciona valor ao cartão (caso tenha sido especificado)
+                        const queryAddValor = 'UPDATE optbusao.cartoes SET valor = valor + ? WHERE idUser = ?';
+        
+                        database.query(queryAddValor, [valor, idUser], (err) => {
+                            if (err) {
+                                console.error(err);
+                                return res.status(500).json({ error: 'Erro ao adicionar valor ao cartão.' });
+                            }
+                            console.log(`Valor  depois de setar no cartao: ${valor}`);
+                            res.json({ message: `Solicitação aprovada, cartão criado e saldo adicionado com sucesso para o usuário ${idUser}.` });
+                        });
                     });
                 });
             } else {
@@ -314,9 +325,6 @@ class CartaoController {
             }
         );
     }
-    
-    
-
 }
 
 module.exports = new CartaoController;

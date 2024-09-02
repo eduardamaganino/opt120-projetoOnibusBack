@@ -3,7 +3,7 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 
 class UsuarioController {
-    newUser(req, res) {
+        newUser(req, res) {
         const { nome, email, senha, telefone, is_adm } = req.body;
         const hashedSenha = bcrypt.hashSync(senha, 10); // Hash da senha
         database.query(

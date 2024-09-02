@@ -100,7 +100,7 @@ class CartaoController {
         const { id } = req.params;
 
         // Check if the user exists
-        database.query('SELECT * FROM optbusao.cartoes WHERE id = ?', [id], (error, results) => {
+        database.query('SELECT * FROM optbusao.cartoes WHERE idUser = ?', [id], (error, results) => {
             if (error) {
                 console.error(error);
                 res.status(500).json({ error: 'Erro interno do servidor' });
@@ -113,7 +113,7 @@ class CartaoController {
             }
 
             // Delete the user
-            database.query('DELETE FROM optbusao.cartoes WHERE id = ?', [id], (deleteError) => {
+            database.query('DELETE FROM optbusao.cartoes WHERE idUser = ?', [id], (deleteError) => {
                 if (deleteError) {
                     console.error(deleteError);
                     res.status(500).json({ error: 'Erro ao deletar o cartão' });

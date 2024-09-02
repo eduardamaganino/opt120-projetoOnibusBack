@@ -107,6 +107,22 @@ class NotificacaoController {
         });
     }
 
+    updateStatus(req, res) {
+        const { id } = req.params;
+        const { isRead } = req.body;
+
+        const query = 'UPDATE optbusao.notificacoes SET isRead = ? WHERE id = ?';
+
+        database.query(query, [isRead, id], (error, results) => {
+            if (error) {
+                console.error(error);
+                res.status(500).json({ error: 'Erro ao atualizar o status da notificação' });
+                return;
+            }
+
+            res.json({ message: 'Status da notificação atualizado com sucesso' });
+        });
+    }
 }
 
 module.exports = new NotificacaoController;

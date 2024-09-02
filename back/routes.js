@@ -20,6 +20,7 @@ router.get('/getByIdNotificacao/:id', NotificacaoController.getById)
 router.get('/getNotificacaoByUserId/:idUser', NotificacaoController.getByUserId);
 router.delete('/deleteNotificacao/:id', NotificacaoController.delete)
 router.get('/getAllNotifi', NotificacaoController.getAll)
+router.post('/updateNotificacaoStatus/:id', NotificacaoController.updateStatus);
 
 router.post('/createTable', CartaoController.createTable);
 router.post('/createCartao', CartaoController.create)

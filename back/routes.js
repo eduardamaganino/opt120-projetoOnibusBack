@@ -7,7 +7,7 @@ const CartaoController = require('./controllers/cartao-controller')
 const multer = require('multer');
 const upload = multer({ dest: 'uploads/' }); // Diretório de destino para os arquivos
 
-
+// Rotas para usuários
 router.post('/login', UsuarioController.login)
 router.post('/newUser',UsuarioController.newUser)
 router.get('/showUser', UsuarioController.showUser)
@@ -15,13 +15,15 @@ router.get('/showUserId/:id', UsuarioController.showUserById)
 router.delete('/deleteUser/:id', UsuarioController.deleteUser)
 router.put('/updateUser/:id', UsuarioController.updateUser)
 
+// Rotas para notificações
 router.post('/createNotificacao', NotificacaoController.create)
 router.get('/getByIdNotificacao/:id', NotificacaoController.getById)
 router.get('/getNotificacaoByUserId/:idUser', NotificacaoController.getByUserId);
 router.delete('/deleteNotificacao/:id', NotificacaoController.delete)
 router.get('/getAllNotifi', NotificacaoController.getAll)
-router.post('/updateNotificacaoStatus/:id', NotificacaoController.updateStatus);
+router.put('/notificacoes/status/:idUser', NotificacaoController.updateStatus);
 
+// Rotas para cartões
 router.post('/createTable', CartaoController.createTable);
 router.post('/createCartao', CartaoController.create)
 router.get('/getByIdCartao/:id', CartaoController.getById)

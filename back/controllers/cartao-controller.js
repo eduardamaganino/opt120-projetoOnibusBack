@@ -268,7 +268,6 @@ class CartaoController {
                             console.error(err);
                             return res.status(500).json({ error: 'Erro ao criar o cartão.' });
                         }
-                        console.log(`Valor  antes de setar no cartao: ${valor}`);
 
                         // Adiciona valor ao cartão (caso tenha sido especificado)
                         const queryAddValor = 'UPDATE optbusao.cartoes SET valor = valor + ? WHERE idUser = ?';
@@ -278,7 +277,6 @@ class CartaoController {
                                 console.error(err);
                                 return res.status(500).json({ error: 'Erro ao adicionar valor ao cartão.' });
                             }
-                            console.log(`Valor  depois de setar no cartao: ${valor}`);
                             res.json({ message: `Solicitação aprovada, cartão criado e saldo adicionado com sucesso para o usuário ${idUser}.` });
                         });
                     });

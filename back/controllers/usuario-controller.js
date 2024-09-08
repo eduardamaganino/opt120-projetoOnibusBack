@@ -140,6 +140,49 @@ class UsuarioController {
             res.json(results);
         });
     }
+
+    editPassword(req, res) {
+        const { id } = req.params; // ID do usuário
+        const { senhaAntiga, senhaNova } = req.body; // Senha antiga e nova fornecida
+        console.log(senhaAntiga, senhaNova);
+    
+        // Consulta para obter o usuário pelo ID
+        database.query('SELECT * FROM optbusao.usuarios WHERE id = ?', [id], (error, results) => {
+            if (error) {
+                console.error(error);
+                res.status(500).json({ error: 'Erro interno do servidor' });
+                return;
+            }
+    
+            if (results.length === 0) {
+                res.status(404).json({ error: 'Usuário não encontrado' });
+                return;
+            }
+    
+            const usuario = results[0];
+            const senhaCorreta = bcrypt.compareSync(senhaAntiga, usuario.senha); // Verifica a senha antiga
+    
+            if (!senhaCorreta) {
+                res.status(401).json({ error: 'Senha antiga incorreta' });
+                return;
+            }
+    
+            // Se a senha antiga estiver correta, hash da nova senha
+            const hashedSenhaNova = bcrypt.hashSync(senhaNova, 10);
+    
+            // Atualiza a senha no banco de dados
+            database.query('UPDATE optbusao.usuarios SET senha = ? WHERE id = ?', [hashedSenhaNova, id], (updateError) => {
+                if (updateError) {
+                    console.error(updateError);
+                    res.status(500).json({ error: 'Erro ao atualizar a senha' });
+                    return;
+                }
+    
+                res.json({ message: 'Senha atualizada com sucesso' });
+            });
+        });
+    }
+    
 }
 
 module.exports = new UsuarioController();

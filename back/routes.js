@@ -5,7 +5,7 @@ const UsuarioController = require('./controllers/usuario-controller')
 const NotificacaoController = require('./controllers/notificacao-controller')
 const CartaoController = require('./controllers/cartao-controller')
 const multer = require('multer');
-const upload = multer({ dest: 'uploads/' }); // Diretório de destino para os arquivos
+const upload = multer({ dest: 'uploads/' }); 
 
 // Rotas para usuários
 router.post('/login', UsuarioController.login)
@@ -14,6 +14,7 @@ router.get('/showUser', UsuarioController.showUser)
 router.get('/showUserId/:id', UsuarioController.showUserById)
 router.delete('/deleteUser/:id', UsuarioController.deleteUser)
 router.put('/updateUser/:id', UsuarioController.updateUser)
+router.put('/updateSenha/:id', UsuarioController.editPassword)
 
 // Rotas para notificações
 router.post('/createNotificacao', NotificacaoController.create)

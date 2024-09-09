@@ -441,6 +441,28 @@ class CartaoController {
             }
         );
     }
+
+    obterSaldo(req, res) {
+        const { idUser } = req.params;
+
+        database.query(
+            'SELECT valor FROM optbusao.cartoes WHERE idUser = ?',
+            [idUser],
+            (err, results) => {
+                if (err) {
+                    console.error(err);
+                    return res.status(500).json({ error: 'Erro interno do servidor' });
+                }
+
+                if (results.length === 0) {
+                    return res.status(404).json({ error: 'Cartão não encontrado' });
+                }
+
+                const saldo = results[0].valor;
+                res.json({ saldo });
+            }
+        );
+    }
 }
 
 module.exports = new CartaoController;

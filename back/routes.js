@@ -32,6 +32,7 @@ router.get('/getByIdUserCartao/:id', CartaoController.getByIdUser);
 router.delete('/deleteCartao/:id', CartaoController.delete);
 router.put('/debitar/:idUser', CartaoController.debitar);
 router.put('/atualizarValorDebito', CartaoController.atualizarValorDebito);
+router.get('/saldo/:idUser', CartaoController.obterSaldo);
 
 // Rota para upload de PDF e solicitação de cartão
 router.post('/solicitarCartao/:idUser', upload.single('file'), CartaoController.solicitarCartao);

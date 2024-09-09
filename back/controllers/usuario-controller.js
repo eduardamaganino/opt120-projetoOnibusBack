@@ -143,8 +143,12 @@ class UsuarioController {
 
     editPassword(req, res) {
         const { id } = req.params; // ID do usuário
-        const { senhaAntiga, senhaNova } = req.body; // Senha antiga e nova fornecida
-        console.log(senhaAntiga, senhaNova);
+        const { senhaAntiga, senhaNova1, senhaNova2 } = req.body; // Senha antiga e novas fornecidas
+        
+        // Verifica se as novas senhas coincidem
+        if (senhaNova1 !== senhaNova2) {
+            return res.status(400).json({ error: 'As novas senhas não coincidem' });
+        }
     
         // Consulta para obter o usuário pelo ID
         database.query('SELECT * FROM optbusao.usuarios WHERE id = ?', [id], (error, results) => {
@@ -167,8 +171,8 @@ class UsuarioController {
                 return;
             }
     
-            // Se a senha antiga estiver correta, hash da nova senha
-            const hashedSenhaNova = bcrypt.hashSync(senhaNova, 10);
+            // Se a senha antiga estiver correta e as novas senhas coincidem, hash da nova senha
+            const hashedSenhaNova = bcrypt.hashSync(senhaNova1, 10);
     
             // Atualiza a senha no banco de dados
             database.query('UPDATE optbusao.usuarios SET senha = ? WHERE id = ?', [hashedSenhaNova, id], (updateError) => {
@@ -182,6 +186,7 @@ class UsuarioController {
             });
         });
     }
+    
     
 }
 

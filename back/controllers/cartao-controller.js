@@ -124,6 +124,31 @@ class CartaoController {
             });
         });
     }
+    getSolicitacoesCartaoPendente(req, res) {
+        // Consulta as solicitações pendentes de cartão
+        const query = 'SELECT * FROM solicitacoes_cartao WHERE status = "pendente"';
+        database.query(query, (err, results) => {
+            if (err) {
+                console.error(err);
+                return res.status(500).json({ error: 'Erro ao buscar solicitações.' });
+            }
+            res.json(results);
+        });
+    }
+    
+    getSolicitacoesSaldoPendente(req, res) {
+        const query = 'SELECT * FROM optbusao.solicitacoes_saldo WHERE status = "pendente"';
+        database.query(query, (err, results) => {
+            if (err) {
+                console.error(err);
+                return res.status(500).json({ error: 'Erro ao buscar solicitações.' });
+            }
+            res.json(results);
+        });
+    }
+    
+    
+    
 
     createTable(req, res) {
         const createTableQuery = `
@@ -150,36 +175,95 @@ class CartaoController {
     }
 
     debitar(req, res) {
-        const { idUser } = req.params; 
-        const valor = 2.00;
-
-        // Verifica se já existe um cartão com o idUser fornecido
+        const { idUser } = req.params;
+    
+        // Primeiro, busca o valor de débito da tabela 'catraca'
         database.query(
-            'SELECT * FROM optbusao.cartoes WHERE idUser = ?',
-            [idUser],
+            'SELECT valor FROM optbusao.catraca WHERE id = 1',
             (err, results) => {
-                
-                const saldoAtual = results[0].valor;
-                const novoSaldo = saldoAtual - valor;
-                console.log(novoSaldo);
-                // Caso não exista, insere o novo cartão
+                if (err) {
+                    console.error(err);
+                    res.status(500).json({ error: 'Erro interno do servidor' });
+                    return;
+                }
+    
+                if (results.length === 0) {
+                    res.status(404).json({ error: 'Valor de débito não encontrado' });
+                    return;
+                }
+    
+                const valor = results[0].valor;
+    
+                // Verifica se já existe um cartão com o idUser fornecido
                 database.query(
-                    'UPDATE optbusao.cartoes SET valor = ? WHERE idUser = ?',
-                    [novoSaldo, idUser],
+                    'SELECT * FROM optbusao.cartoes WHERE idUser = ?',
+                    [idUser],
                     (err, results) => {
                         if (err) {
                             console.error(err);
                             res.status(500).json({ error: 'Erro interno do servidor' });
                             return;
                         }
-                        console.log(results);
-                        res.status(201).json({ message: 'Cartão ATUALZIADO com sucesso!', cardId: idUser});
+    
+                        if (results.length === 0) {
+                            res.status(404).json({ error: 'Cartão não encontrado' });
+                            return;
+                        }
+    
+                        const saldoAtual = results[0].valor;
+                        const novoSaldo = saldoAtual - valor;
+    
+                        // Atualiza o saldo do cartão
+                        database.query(
+                            'UPDATE optbusao.cartoes SET valor = ? WHERE idUser = ?',
+                            [novoSaldo, idUser],
+                            (err, results) => {
+                                if (err) {
+                                    console.error(err);
+                                    res.status(500).json({ error: 'Erro interno do servidor' });
+                                    return;
+                                }
+                                res.status(200).json({ message: 'Cartão atualizado com sucesso!', cardId: idUser });
+                            }
+                        );
                     }
                 );
             }
         );
-      
     }
+
+    // Atualiza o valor de débito na tabela 'catraca'
+    atualizarValorDebito(req, res) {
+        let { novoValor } = req.body;
+    
+        // Converte o valor para um número
+        novoValor = parseFloat(novoValor);
+    
+        // Valida se o valor é um número positivo
+        if (isNaN(novoValor) || novoValor <= 0) {
+            return res.status(400).json({ error: 'Valor inválido. Deve ser um número positivo.' });
+        }
+    
+        // Atualiza o valor na tabela 'catraca'
+        database.query(
+            'UPDATE optbusao.catraca SET valor = ? WHERE id = 1',
+            [novoValor],
+            (err, results) => {
+                if (err) {
+                    console.error(err);
+                    return res.status(500).json({ error: 'Erro interno do servidor' });
+                }
+    
+                if (results.affectedRows === 0) {
+                    return res.status(404).json({ error: 'Registro de valor de débito não encontrado' });
+                }
+    
+                res.status(200).json({ message: 'Valor de débito atualizado com sucesso!' });
+            }
+        );
+    }
+    
+
 
     // Rota para solicitar um cartão com PDF de dados
     solicitarCartao(req, res) {
@@ -212,19 +296,54 @@ class CartaoController {
             res.status(201).json({ message: 'Solicitação de cartão enviada com sucesso!', requestId: results.insertId });
         });
     }
+        
+    processarSolicitacaoSaldo(req, res) {
+        const { id } = req.params;
+        const { status } = req.body; // 'aprovado' ou 'rejeitado'
     
+        if (!['aprovado', 'rejeitado'].includes(status)) {
+            return res.status(400).json({ error: 'Status inválido.' });
+        }
     
-    // Rota para o administrador ver todas as solicitações pendentes
-    getSolicitacoesPendentes(req, res) {
-        const query = 'SELECT * FROM solicitacoes_cartao WHERE status = "pendente"';
-        database.query(query, (err, results) => {
+        const queryUpdateStatus = 'UPDATE solicitacoes_saldo SET status = ? WHERE id = ?';
+    
+        // Primeiro, atualizamos o status da solicitação
+        database.query(queryUpdateStatus, [status, id], (err, results) => {
             if (err) {
                 console.error(err);
-                return res.status(500).json({ error: 'Erro ao buscar solicitações.' });
+                return res.status(500).json({ error: 'Erro ao processar a solicitação.' });
             }
-            res.json(results);
+    
+            if (status === 'aprovado') {
+                // Se for aprovado, buscamos o valor e o cartão associado
+                const queryGetSolicitacao = 'SELECT idUser, idCartao, valor FROM solicitacoes_saldo WHERE id = ?';
+    
+                database.query(queryGetSolicitacao, [id], (err, results) => {
+                    if (err || results.length === 0) {
+                        console.error(err);
+                        return res.status(500).json({ error: 'Erro ao buscar detalhes da solicitação.' });
+                    }
+    
+                    const { idUser, idCartao, valor } = results[0];
+    
+                    // Atualiza o saldo do cartão
+                    const queryAddSaldo = 'UPDATE cartoes SET valor = valor + ? WHERE id = ?';
+    
+                    database.query(queryAddSaldo, [valor, idCartao], (err, results) => {
+                        if (err) {
+                            console.error(err);
+                            return res.status(500).json({ error: 'Erro ao adicionar saldo ao cartão.' });
+                        }
+    
+                        res.status(200).json({ message: 'Solicitação de saldo aprovada e saldo adicionado com sucesso.' });
+                    });
+                });
+            } else {
+                res.json({ message: 'Solicitação de saldo rejeitada com sucesso.' });
+            }
         });
     }
+    
 
     // Rota para aprovar ou rejeitar uma solicitação
     processarSolicitacao(req, res) {
@@ -290,12 +409,12 @@ class CartaoController {
     adicionarSaldo(req, res) {
         const { idUser } = req.params;
         const { valorAdicionado } = req.body; // Valor a ser adicionado ao saldo
-        // Converta o valorAdicionado para float
+    
         const valorAdicionadoFloat = parseFloat(valorAdicionado);
         if (isNaN(valorAdicionadoFloat)) {
             return res.status(400).json({ error: 'Valor inválido para adição de saldo.' });
         }
-        
+    
         // Busca o cartão do usuário
         database.query(
             'SELECT * FROM optbusao.cartoes WHERE idUser = ?',
@@ -306,20 +425,19 @@ class CartaoController {
                     return res.status(500).json({ error: 'Erro ao buscar cartão ou cartão não encontrado.' });
                 }
     
-                const saldoAtual = results[0].valor;
-                const novoSaldo = saldoAtual + valorAdicionadoFloat;
-                // Atualiza o saldo do cartão
-                database.query(
-                    'UPDATE optbusao.cartoes SET valor = ? WHERE idUser = ?',
-                    [novoSaldo, idUser],
-                    (err, updateResults) => {
-                        if (err) {
-                            console.error(err);
-                            return res.status(500).json({ error: 'Erro ao adicionar saldo.' });
-                        }
-                        res.status(200).json({ message: 'Saldo adicionado com sucesso.', novoSaldo: novoSaldo });
+                const idCartao = results[0].id;
+    
+                // Insere uma solicitação de saldo na tabela solicitacoes_saldo
+                const queryInsertSolicitacao = 
+                    'INSERT INTO solicitacoes_saldo (idUser, idCartao, valor, status) VALUES (?, ?, ?, "pendente")';
+    
+                database.query(queryInsertSolicitacao, [idUser, idCartao, valorAdicionadoFloat], (err, results) => {
+                    if (err) {
+                        console.error(err);
+                        return res.status(500).json({ error: 'Erro ao criar solicitação de saldo.' });
                     }
-                );
+                    res.status(200).json({ message: 'Solicitação de saldo criada com sucesso.' });
+                });
             }
         );
     }

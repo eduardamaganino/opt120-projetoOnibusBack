@@ -175,36 +175,95 @@ class CartaoController {
     }
 
     debitar(req, res) {
-        const { idUser } = req.params; 
-        const valor = 2.00;
-
-        // Verifica se já existe um cartão com o idUser fornecido
+        const { idUser } = req.params;
+    
+        // Primeiro, busca o valor de débito da tabela 'catraca'
         database.query(
-            'SELECT * FROM optbusao.cartoes WHERE idUser = ?',
-            [idUser],
+            'SELECT valor FROM optbusao.catraca WHERE id = 1',
             (err, results) => {
-                
-                const saldoAtual = results[0].valor;
-                const novoSaldo = saldoAtual - valor;
-                console.log(novoSaldo);
-                // Caso não exista, insere o novo cartão
+                if (err) {
+                    console.error(err);
+                    res.status(500).json({ error: 'Erro interno do servidor' });
+                    return;
+                }
+    
+                if (results.length === 0) {
+                    res.status(404).json({ error: 'Valor de débito não encontrado' });
+                    return;
+                }
+    
+                const valor = results[0].valor;
+    
+                // Verifica se já existe um cartão com o idUser fornecido
                 database.query(
-                    'UPDATE optbusao.cartoes SET valor = ? WHERE idUser = ?',
-                    [novoSaldo, idUser],
+                    'SELECT * FROM optbusao.cartoes WHERE idUser = ?',
+                    [idUser],
                     (err, results) => {
                         if (err) {
                             console.error(err);
                             res.status(500).json({ error: 'Erro interno do servidor' });
                             return;
                         }
-                        console.log(results);
-                        res.status(201).json({ message: 'Cartão ATUALZIADO com sucesso!', cardId: idUser});
+    
+                        if (results.length === 0) {
+                            res.status(404).json({ error: 'Cartão não encontrado' });
+                            return;
+                        }
+    
+                        const saldoAtual = results[0].valor;
+                        const novoSaldo = saldoAtual - valor;
+    
+                        // Atualiza o saldo do cartão
+                        database.query(
+                            'UPDATE optbusao.cartoes SET valor = ? WHERE idUser = ?',
+                            [novoSaldo, idUser],
+                            (err, results) => {
+                                if (err) {
+                                    console.error(err);
+                                    res.status(500).json({ error: 'Erro interno do servidor' });
+                                    return;
+                                }
+                                res.status(200).json({ message: 'Cartão atualizado com sucesso!', cardId: idUser });
+                            }
+                        );
                     }
                 );
             }
         );
-      
     }
+
+    // Atualiza o valor de débito na tabela 'catraca'
+    atualizarValorDebito(req, res) {
+        let { novoValor } = req.body;
+    
+        // Converte o valor para um número
+        novoValor = parseFloat(novoValor);
+    
+        // Valida se o valor é um número positivo
+        if (isNaN(novoValor) || novoValor <= 0) {
+            return res.status(400).json({ error: 'Valor inválido. Deve ser um número positivo.' });
+        }
+    
+        // Atualiza o valor na tabela 'catraca'
+        database.query(
+            'UPDATE optbusao.catraca SET valor = ? WHERE id = 1',
+            [novoValor],
+            (err, results) => {
+                if (err) {
+                    console.error(err);
+                    return res.status(500).json({ error: 'Erro interno do servidor' });
+                }
+    
+                if (results.affectedRows === 0) {
+                    return res.status(404).json({ error: 'Registro de valor de débito não encontrado' });
+                }
+    
+                res.status(200).json({ message: 'Valor de débito atualizado com sucesso!' });
+            }
+        );
+    }
+    
+
 
     // Rota para solicitar um cartão com PDF de dados
     solicitarCartao(req, res) {

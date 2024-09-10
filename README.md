@@ -44,6 +44,32 @@ O usuário pode editar sua senha, passa por um processo que precisa saber a senh
 O administrador pode enviar notificações diretamente aos usuários, informando-os sobre mudanças, avisos importantes ou atualizações no sistema.
 As notificações aparecem no painel do usuário, que pode marcá-las como lidas.
 
+## Tecnologias usadas:
+
+- BackEnd:
+Feito em Node.js;
+É necessário ter instalado o node.js
+
+- FrontEnd:
+Feito em Flutter;
+É Necessário ter instalado o fluttter;
+
+- Banco de Dados:
+Banco feito usando mysql;
+É necessário ter instalado o mysql;
+
+## Para rodar o projeto:
+
+- BackEnd:
+Clonar o repositório do front usando o comando "git clone https://github.com/eduardamaganino/opt120-projetoOnibusBack.git"
+Dar "npm install" para instalar as dependencias;
+Dar "npm startt" para rodar o backEnd;
+
+= FronEnd:
+Clonar o repositório do front usando o comando "git clone https://github.com/eduardamaganino/opt120-projetoOnibusFront.git"
+Dar "flutter run" para rodar o frontEnd;
+Digitar um número correspondente ao que deseja para rodar, nós utilizamos o Chrome(2);
+
 
 
 ## Membros 
